@@ -4626,7 +4626,7 @@ namespace System.Management.Automation
                     {
                         var completedName = (userPath.IndexOfAny(s_charactersRequiringQuotes) == -1)
                                                 ? prefix + userPath
-                                                : prefix + "{" + userPath + "}";
+                                                : prefix + "{" + CodeGeneration.EscapeVariableName(userPath) + "}";
                         var tooltip = userPath;
                         var ast = astTarget;
 
@@ -4724,7 +4724,7 @@ namespace System.Management.Automation
 
                         var completedName = (name.IndexOfAny(s_charactersRequiringQuotes) == -1)
                                                 ? prefix + provider + name
-                                                : prefix + "{" + provider + name + "}";
+                                                : prefix + "{" + CodeGeneration.EscapeVariableName(provider + name) + "}";
                         AddUniqueVariable(hashedResults, results, completedName, name, tooltip);
                     }
                 }
@@ -4747,7 +4747,7 @@ namespace System.Management.Automation
                             name = "env:" + name;
                             var completedName = (name.IndexOfAny(s_charactersRequiringQuotes) == -1)
                                                     ? prefix + name
-                                                    : prefix + "{" + name + "}";
+                                                    : prefix + "{" + CodeGeneration.EscapeVariableName(name) + "}";
                             AddUniqueVariable(hashedResults, results, completedName, name, "[string]" + name);
                         }
                     }
@@ -4762,7 +4762,7 @@ namespace System.Management.Automation
                 {
                     var completedName = (specialVariable.IndexOfAny(s_charactersRequiringQuotes) == -1)
                                             ? prefix + specialVariable
-                                            : prefix + "{" + specialVariable + "}";
+                                            : prefix + "{" + CodeGeneration.EscapeVariableName(specialVariable) + "}";
 
                     AddUniqueVariable(hashedResults, results, completedName, specialVariable, specialVariable);
                 }
@@ -4788,7 +4788,7 @@ namespace System.Management.Automation
                             {
                                 var completedName = (name.IndexOfAny(s_charactersRequiringQuotes) == -1)
                                                         ? prefix + name + ":"
-                                                        : prefix + "{" + name + ":}";
+                                                        : prefix + "{" + CodeGeneration.EscapeVariableName(name) + ":}";
 
                                 var tooltip = string.IsNullOrEmpty(driveInfo.Description) ? name : driveInfo.Description;
                                 AddUniqueVariable(hashedResults, results, completedName, name, tooltip);
@@ -4804,7 +4804,7 @@ namespace System.Management.Automation
                     {
                         var completedName = (scope.IndexOfAny(s_charactersRequiringQuotes) == -1)
                                                 ? prefix + scope
-                                                : prefix + "{" + scope + "}";
+                                                : prefix + "{" + CodeGeneration.EscapeVariableName(scope) + "}";
                         AddUniqueVariable(hashedResults, results, completedName, scope, scope);
                     }
                 }
