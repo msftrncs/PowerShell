@@ -4562,9 +4562,6 @@ namespace System.Management.Automation
         }
 
         private static readonly string[] s_variableScopes = new string[] { "Global:", "Local:", "Script:", "Private:" };
-        private static readonly char[] s_charactersRequiringQuotes = new char[] {
-            '-', '`', '&', '@', '\'', '"', '#', '{', '}', '(', ')', '$', ',', ';', '|', '<', '>', ' ', '.', '\\', '/', '\t', '^',
-        };
 
         internal static List<CompletionResult> CompleteVariable(CompletionContext context)
         {
@@ -4624,9 +4621,7 @@ namespace System.Management.Automation
 
                     if (wildcardPattern.IsMatch(userPath))
                     {
-                        var completedName = (userPath.IndexOfAny(s_charactersRequiringQuotes) == -1)
-                                                ? prefix + userPath
-                                                : prefix + "{" + CodeGeneration.EscapeVariableName(userPath) + "}";
+                        var completedName = prefix + GenerateVariableCompletionText(userPath, colon != -1);
                         var tooltip = userPath;
                         var ast = astTarget;
 
@@ -4685,7 +4680,7 @@ namespace System.Management.Automation
             else
             {
                 provider = wordToComplete.Substring(0, colon + 1);
-                if (s_variableScopes.Contains(provider, StringComparer.OrdinalIgnoreCase))
+                if (colon == 0 || s_variableScopes.Contains(provider, StringComparer.OrdinalIgnoreCase))
                 {
                     pattern = "variable:" + wordToComplete.Substring(colon + 1) + "*";
                 }
@@ -4722,10 +4717,8 @@ namespace System.Management.Automation
                             }
                         }
 
-                        var completedName = (name.IndexOfAny(s_charactersRequiringQuotes) == -1)
-                                                ? prefix + provider + name
-                                                : prefix + "{" + CodeGeneration.EscapeVariableName(provider + name) + "}";
-                        AddUniqueVariable(hashedResults, results, completedName, name, tooltip);
+                        AddUniqueVariable(hashedResults, results, prefix + 
+                            GenerateVariableCompletionText(provider + name, colon != -1), name, tooltip);
                     }
                 }
             }
@@ -4745,10 +4738,7 @@ namespace System.Management.Automation
                         if (!string.IsNullOrEmpty(name))
                         {
                             name = "env:" + name;
-                            var completedName = (name.IndexOfAny(s_charactersRequiringQuotes) == -1)
-                                                    ? prefix + name
-                                                    : prefix + "{" + CodeGeneration.EscapeVariableName(name) + "}";
-                            AddUniqueVariable(hashedResults, results, completedName, name, "[string]" + name);
+                            AddUniqueVariable(hashedResults, results, prefix + GenerateVariableCompletionText(name), name, "[string]" + name);
                         }
                     }
                 }
@@ -4760,11 +4750,7 @@ namespace System.Management.Automation
             {
                 if (wildcardPattern.IsMatch(specialVariable))
                 {
-                    var completedName = (specialVariable.IndexOfAny(s_charactersRequiringQuotes) == -1)
-                                            ? prefix + specialVariable
-                                            : prefix + "{" + CodeGeneration.EscapeVariableName(specialVariable) + "}";
-
-                    AddUniqueVariable(hashedResults, results, completedName, specialVariable, specialVariable);
+                    AddUniqueVariable(hashedResults, results, prefix + GenerateVariableCompletionText(specialVariable, colon != -1), specialVariable, specialVariable);
                 }
             }
 
@@ -4786,12 +4772,8 @@ namespace System.Management.Automation
                             var name = driveInfo.Name;
                             if (name != null && !string.IsNullOrWhiteSpace(name) && name.Length > 1)
                             {
-                                var completedName = (name.IndexOfAny(s_charactersRequiringQuotes) == -1)
-                                                        ? prefix + name + ":"
-                                                        : prefix + "{" + CodeGeneration.EscapeVariableName(name) + ":}";
-
                                 var tooltip = string.IsNullOrEmpty(driveInfo.Description) ? name : driveInfo.Description;
-                                AddUniqueVariable(hashedResults, results, completedName, name, tooltip);
+                                AddUniqueVariable(hashedResults, results, prefix + GenerateVariableCompletionText(name + ':'), name, tooltip);
                             }
                         }
                     }
@@ -4802,10 +4784,7 @@ namespace System.Management.Automation
                 {
                     if (scopePattern.IsMatch(scope))
                     {
-                        var completedName = (scope.IndexOfAny(s_charactersRequiringQuotes) == -1)
-                                                ? prefix + scope
-                                                : prefix + "{" + CodeGeneration.EscapeVariableName(scope) + "}";
-                        AddUniqueVariable(hashedResults, results, completedName, scope, scope);
+                        AddUniqueVariable(hashedResults, results, prefix + GenerateVariableCompletionText(scope), scope, scope);
                     }
                 }
             }
@@ -4820,6 +4799,47 @@ namespace System.Management.Automation
                 hashedResults.Add(completionText);
                 results.Add(new CompletionResult(completionText, listItemText, CompletionResultType.Variable, tooltip));
             }
+        }
+
+        private static string GenerateVariableCompletionText(string value)
+        {
+            return GenerateVariableCompletionText(value, true);
+        }
+
+        private static string GenerateVariableCompletionText(string value, bool HasProvider)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            bool StartsWithQM = value[0] == '?' && value.Length > 1;
+            bool LastCharWasColon = false, HasColon = false;
+            bool BraceVariable = !value[0].IsVariableStart() || value.Length != 1 && (value[0] == '$' || value[0] == '^' || (HasProvider && StartsWithQM));
+            if (!BraceVariable)
+            {
+                LastCharWasColon = !HasProvider && value[0] == ':';
+                HasColon = LastCharWasColon;
+                foreach(char c in value.Substring(1))
+                {
+                    if ((c == ':' && LastCharWasColon) || !(c.IsIdentifierFollow() || c == '?' || c == ':'))
+                    {
+                        BraceVariable = true;
+                        break;
+                    }
+                    else
+                    {
+                        LastCharWasColon = c == ':';
+                        HasColon |= LastCharWasColon;
+                    }
+                }
+            }
+
+            if (BraceVariable)
+            {
+                return "{" + CodeGeneration.EscapeVariableName((HasProvider || !HasColon ? string.Empty : ":") + value) + "}";
+            }
+            return (HasProvider || !(StartsWithQM || HasColon) ? string.Empty: ":") + value;
         }
 
         private class FindVariablesVisitor : AstVisitor
