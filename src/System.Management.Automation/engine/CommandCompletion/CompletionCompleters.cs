@@ -4717,7 +4717,7 @@ namespace System.Management.Automation
                             }
                         }
 
-                        AddUniqueVariable(hashedResults, results, prefix + 
+                        AddUniqueVariable(hashedResults, results, prefix +
                             GenerateVariableCompletionText(provider + name, colon != -1), name, tooltip);
                     }
                 }
@@ -4820,7 +4820,7 @@ namespace System.Management.Automation
             {
                 LastCharWasColon = !HasProvider && value[0] == ':';
                 HasColon = LastCharWasColon;
-                foreach(char c in value.Substring(1))
+                foreach (char c in value.Substring(1))
                 {
                     if ((c == ':' && LastCharWasColon) || !(c.IsIdentifierFollow() || c == '?' || c == ':'))
                     {
@@ -4839,7 +4839,7 @@ namespace System.Management.Automation
             {
                 return "{" + CodeGeneration.EscapeVariableName((HasProvider || !HasColon ? string.Empty : ":") + value) + "}";
             }
-            return (HasProvider || !(StartsWithQM || HasColon) ? string.Empty: ":") + value;
+            return (HasProvider || !(StartsWithQM || HasColon) ? string.Empty : ":") + value;
         }
 
         private class FindVariablesVisitor : AstVisitor
