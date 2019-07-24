@@ -132,38 +132,35 @@ namespace System.Management.Automation.Language
                     }
                 }
             }
-            
-            if (RequiresQuote) {
-                return "'" + EscapeSingleQuotedStringContent(value) + "'";
-            }
-            return value;
+
+            return RequiresQuote ?
+                "'" + EscapeSingleQuotedStringContent(value) + "'" :
+                value;
         }
 
         /// <summary>
-        /// Quote an argument, if needed, or if specifically requested, escaping characters accordingly
-        /// For example: "'" + QuoteArgument(userContent, '', true) + "'"
+        /// Quote an argument, if needed, or if specifically requested, escaping characters accordingly,
+        /// handling escaping of wildcard patterns when argument is not already taken literally.
+        /// For example: QuoteArgument(userContent, quoteInUse, isLiteralArgument)
         /// </summary>
-        /// <param name="value">The content to be used as a member name in a member access.</param>
+        /// <param name="value">The content to be used as an argument value taken literally.</param>
         /// <param name="quoteInUse">The character to be quoted with.</param>
-        /// <param name="useLiteralPath">Treat the path as already a literal, wildcard escaping not required.</param>
-        /// <returns>Content quoted and escaped if required for an argument.</returns>
-        public static string QuoteArgument(string value, char quoteInUse, bool useLiteralPath)
+        /// <param name="isLiteralArgument">Treat the argument as taken literally, wildcard escaping not required.</param>
+        /// <returns>Content quoted and escaped if required for use as an argument value.</returns>
+        public static string QuoteArgument(string value, char quoteInUse, bool isLiteralArgument)
         {
-            if (string.IsNullOrEmpty(value))
-            {
-                return string.Empty;
-            }
-
-            return QuoteArgument(useLiteralPath ? value : WildcardPattern.Escape(value), quoteInUse );
+            return string.IsNullOrEmpty(value) ?
+                string.Empty :
+                QuoteArgument(isLiteralArgument ? value : WildcardPattern.Escape(value), quoteInUse);
         }
 
         /// <summary>
         /// Quote an argument, if needed, or if specifically requested, escaping characters accordingly
-        /// For example: "'" + QuoteArgument(userContent, '', true) + "'"
+        /// For example: QuoteArgument(userContent, quoteInUse)
         /// </summary>
-        /// <param name="value">The content to be used as a member name in a member access.</param>
+        /// <param name="value">The content to be used as an argument value taken literally.</param>
         /// <param name="quoteInUse">The character to be quoted with.</param>
-        /// <returns>Content quoted and escaped if required for an argument.</returns>
+        /// <returns>Content quoted and escaped if required for use as an argument value.</returns>
         public static string QuoteArgument(string value, char quoteInUse)
         {
             if (string.IsNullOrEmpty(value))
@@ -172,7 +169,8 @@ namespace System.Management.Automation.Language
             }
 
             char quoteToUse = quoteInUse;
-            if (quoteToUse == 0) {
+            if (quoteToUse == 0)
+            {
                 if (ShouldArgumentNotBeBareword(value))
                 {
                     quoteToUse = '\'';
@@ -183,11 +181,8 @@ namespace System.Management.Automation.Language
             {
                 return value;
             }
-            if (quoteToUse.IsSingleQuote())
-            {
-                return quoteToUse + EscapeSingleQuotedStringContent(value) + quoteToUse;
-            }
-            return quoteToUse + EscapeDoubleQuotedStringContent(value) + quoteToUse;
+            return quoteToUse + (quoteToUse.IsDoubleQuote() ? EscapeDoubleQuotedStringContent(value) :
+                EscapeSingleQuotedStringContent(value)) + quoteToUse;
         }
 
         private static bool ShouldArgumentNotBeBareword(string value)
@@ -197,15 +192,17 @@ namespace System.Management.Automation.Language
                 return false;
             }
 
-            // characters that cannot be in the first position: "@#<>"
-            // Pattern that cannot be in the first position: /[1-6]>/
-            // Characters that cannot appear anywhere 
-            //      ForceStartNewToken
-            //      IsSingleQuote
-            //      IsDoubleQuote
+            // Rules for bareword arguments:
+            //   characters that cannot be in the first position: "@#<>"
+            //   Pattern that cannot be in the first position: /[1-6]>/
+            //   Characters that cannot appear anywhere 
+            //     ForceStartNewToken
+            //     IsSingleQuote
+            //     IsDoubleQuote
+            //   IsVariableStart characters cannot appear after a `$`
             bool requiresQuote = "@#<>".IndexOf(value[0]) != -1 ||
                 value.Length > 1 && '1' <= value[0] && value[0] <= '6' && value[1] == '>';
-            
+
             if (!requiresQuote)
             {
                 bool lastCharWasDollar = false;
@@ -218,7 +215,7 @@ namespace System.Management.Automation.Language
                     }
                     if (lastCharWasDollar)
                     {
-                        if (c.IsIdentifierFollow() | "$?^".IndexOf(c) != -1)
+                        if (c.IsVariableStart())
                         {
                             requiresQuote = true;
                             break;
@@ -246,7 +243,8 @@ namespace System.Management.Automation.Language
             StringBuilder sb = new StringBuilder(value.Length);
             foreach (char c in value)
             {
-                if (c == '$'){
+                if (c == '$')
+                {
                     sb.Append('`');
                 }
                 sb.Append(c);
