@@ -234,7 +234,7 @@ namespace System.Management.Automation
                 name[0].IsSingleQuote() || name[0].IsDoubleQuote() ||
                 // at this point, name is unquoted, if it is a keyword, it will need an ampersand
                 Tokenizer.IsKeyword(name) && !s_keywordsToExcludeFromAddingAmpersand.Contains(name);
-                
+
             // It's useless to call ForEach-Object (foreach) as the first command of a pipeline. For example:
             //     PS C:\> fore<tab>  --->   PS C:\> foreach   (expected, use as the keyword)
             //     PS C:\> fore<tab>  --->   PS C:\> & foreach (unexpected, ForEach-Object is seldom used as the first command of a pipeline)
@@ -6474,31 +6474,31 @@ namespace System.Management.Automation
             return false;
         }
 
-        /*      private static bool CompletionRequiresQuotes(string completion, bool escape)
-                {
-                    // If the tokenizer sees the completion as more than two tokens, or if there is some error, then
-                    // some form of quoting is necessary (if it's a variable, we'd need ${}, filenames would need [], etc.)
+        /*private static bool CompletionRequiresQuotes(string completion, bool escape)
+        {
+            // If the tokenizer sees the completion as more than two tokens, or if there is some error, then
+            // some form of quoting is necessary (if it's a variable, we'd need ${}, filenames would need [], etc.)
 
-                    Language.Token[] tokens;
-                    ParseError[] errors;
-                    Language.Parser.ParseInput(completion, out tokens, out errors);
+            Language.Token[] tokens;
+            ParseError[] errors;
+            Language.Parser.ParseInput(completion, out tokens, out errors);
 
-                    char[] charToCheck = escape ? new[] { '$', '[', ']', '`' } : new[] { '$', '`' };
+            char[] charToCheck = escape ? new[] { '$', '[', ']', '`' } : new[] { '$', '`' };
 
-                    // Expect no errors and 2 tokens (1 is for our completion, the other is eof)
-                    // Or if the completion is a keyword, we ignore the errors
-                    bool requireQuote = !(errors.Length == 0 && tokens.Length == 2);
-                    if ((!requireQuote && tokens[0] is StringToken) ||
-                        (tokens.Length == 2 && (tokens[0].TokenFlags & TokenFlags.Keyword) != 0))
-                    {
-                        requireQuote = false;
-                        var value = tokens[0].Text;
-                        if (value.IndexOfAny(charToCheck) != -1)
-                            requireQuote = true;
-                    }
+            // Expect no errors and 2 tokens (1 is for our completion, the other is eof)
+            // Or if the completion is a keyword, we ignore the errors
+            bool requireQuote = !(errors.Length == 0 && tokens.Length == 2);
+            if ((!requireQuote && tokens[0] is StringToken) ||
+                (tokens.Length == 2 && (tokens[0].TokenFlags & TokenFlags.Keyword) != 0))
+            {
+                requireQuote = false;
+                var value = tokens[0].Text;
+                if (value.IndexOfAny(charToCheck) != -1)
+                    requireQuote = true;
+            }
 
-                    return requireQuote;
-                } */
+            return requireQuote;
+        } */
 
         private static bool ProviderSpecified(string path)
         {
