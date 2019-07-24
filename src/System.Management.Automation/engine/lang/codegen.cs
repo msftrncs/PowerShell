@@ -138,5 +138,126 @@ namespace System.Management.Automation.Language
             }
             return value;
         }
+
+        /// <summary>
+        /// Quote an argument, if needed, or if specifically requested, escaping characters accordingly
+        /// For example: "'" + QuoteArgument(userContent, '', true) + "'"
+        /// </summary>
+        /// <param name="value">The content to be used as a member name in a member access.</param>
+        /// <param name="quoteInUse">The character to be quoted with.</param>
+        /// <param name="useLiteralPath">Treat the path as already a literal, wildcard escaping not required.</param>
+        /// <returns>Content quoted and escaped if required for an argument.</returns>
+        public static string QuoteArgument(string value, char quoteInUse, bool useLiteralPath)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            return QuoteArgument(useLiteralPath ? value : WildcardPattern.Escape(value), quoteInUse );
+        }
+
+        /// <summary>
+        /// Quote an argument, if needed, or if specifically requested, escaping characters accordingly
+        /// For example: "'" + QuoteArgument(userContent, '', true) + "'"
+        /// </summary>
+        /// <param name="value">The content to be used as a member name in a member access.</param>
+        /// <param name="quoteInUse">The character to be quoted with.</param>
+        /// <returns>Content quoted and escaped if required for an argument.</returns>
+        public static string QuoteArgument(string value, char quoteInUse)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            char quoteToUse = quoteInUse;
+            if (quoteToUse == 0) {
+                if (ShouldArgumentNotBeBareword(value))
+                {
+                    quoteToUse = '\'';
+                }
+            }
+
+            if (quoteToUse == 0)
+            {
+                return value;
+            }
+            if (quoteToUse.IsSingleQuote())
+            {
+                return quoteToUse + EscapeSingleQuotedStringContent(value) + quoteToUse;
+            }
+            return quoteToUse + EscapeDoubleQuotedStringContent(value) + quoteToUse;
+        }
+
+        private static bool ShouldArgumentNotBeBareword(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return false;
+            }
+
+            // characters that cannot be in the first position: "@#<>"
+            // Pattern that cannot be in the first position: /[1-6]>/
+            // Characters that cannot appear anywhere 
+            //      ForceStartNewToken
+            //      IsSingleQuote
+            //      IsDoubleQuote
+            bool requiresQuote = "@#<>".IndexOf(value[0]) != -1 ||
+                value.Length > 1 && '1' <= value[0] && value[0] <= '6' && value[1] == '>';
+            
+            if (!requiresQuote)
+            {
+                bool lastCharWasDollar = false;
+                foreach (char c in value)
+                {
+                    if (c.ForceStartNewToken() || c.IsSingleQuote() || c.IsDoubleQuote() || c == '`')
+                    {
+                        requiresQuote = true;
+                        break;
+                    }
+                    if (lastCharWasDollar)
+                    {
+                        if (c.IsIdentifierFollow() | "$?^".IndexOf(c) != -1)
+                        {
+                            requiresQuote = true;
+                            break;
+                        }
+                    }
+                    lastCharWasDollar = c == '$';
+                }
+            }
+            return requiresQuote;
+        }
+
+        /// <summary>
+        /// Escapes content so that it is safe for inclusion in a double-quoted string.
+        /// For example: "'" + EscapeDoubleQuotedStringContent(userContent) + "'"
+        /// </summary>
+        /// <param name="value">The content to be included in a double-quoted string.</param>
+        /// <returns>Content with all `$`, backticks and double-quotes escaped.</returns>
+        public static string EscapeDoubleQuotedStringContent(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            StringBuilder sb = new StringBuilder(value.Length);
+            foreach (char c in value)
+            {
+                if (c == '$'){
+                    sb.Append('`');
+                }
+                sb.Append(c);
+                if (CharExtensions.IsDoubleQuote(c) || c == '`')
+                {
+                    // double-up quotes to escape them
+                    sb.Append(c);
+                }
+            }
+
+            return sb.ToString();
+        }
     }
 }
