@@ -3149,16 +3149,11 @@ namespace System.Management.Automation
                 {
                     var listItemText = process.Name;
 
-                    if (uniqueSet.Contains(listItemText))
+                    // on macOS, system processes names will be empty if PowerShell isn't run as `sudo`
+                    if (string.IsNullOrEmpty(listItemText) || uniqueSet.Contains(listItemText))
                         continue;
 
                     uniqueSet.Add(listItemText);
-
-                    // on macOS, system processes names will be empty if PowerShell isn't run as `sudo`
-                    if (string.IsNullOrEmpty(listItemText))
-                    {
-                        continue;
-                    }
 
                     var completionText = CodeGeneration.QuoteArgument(listItemText, quote == string.Empty ? (char)0 : quote[0]);
                     result.Add(new CompletionResult(completionText, listItemText, CompletionResultType.ParameterValue, listItemText));
