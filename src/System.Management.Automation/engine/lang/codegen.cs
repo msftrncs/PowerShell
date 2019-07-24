@@ -108,11 +108,11 @@ namespace System.Management.Automation.Language
         }
 
         /// <summary>
-        /// Single-quote a member name if it require quoting, otherwise passing it unmodified.
-        /// For example: "'" + QuoteMemberName(userContent) + "'"
+        /// Single-quote and escape a member name if it requires quoting, otherwise passing it unmodified.
+        /// For example: QuoteMemberName(userContent)
         /// </summary>
         /// <param name="value">The content to be used as a member name in a member access.</param>
-        /// <returns>Content quoted and escaped if required for a member name.</returns>
+        /// <returns>Content quoted and escaped if required for use as a member name.</returns>
         public static string QuoteMemberName(string value)
         {
             if (string.IsNullOrEmpty(value))
@@ -120,12 +120,12 @@ namespace System.Management.Automation.Language
                 return string.Empty;
             }
 
-            bool RequiresQuote = !CharExtensions.IsIdentifierStart(value[0]);
+            bool RequiresQuote = !value[0].IsIdentifierStart();
             if (!RequiresQuote)
             {
-                foreach (char c in value)
+                foreach (char c in value.Substring(1))
                 {
-                    if (!CharExtensions.IsIdentifierFollow(c))
+                    if (!c.IsIdentifierFollow())
                     {
                         RequiresQuote = true;
                         break;
