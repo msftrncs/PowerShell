@@ -232,7 +232,7 @@ namespace System.Management.Automation.Language
 
         /// <summary>
         /// Escapes content so that it is safe for inclusion in a double-quoted string.
-        /// For example: "'" + EscapeDoubleQuotedStringContent(userContent) + "'"
+        /// For example: "\"" + EscapeDoubleQuotedStringContent(userContent) + "\""
         /// </summary>
         /// <param name="value">The content to be included in a double-quoted string.</param>
         /// <returns>Content with all `$`, backticks and double-quotes escaped.</returns>
