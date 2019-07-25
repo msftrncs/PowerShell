@@ -116,24 +116,24 @@ namespace System.Management.Automation.Language
         public static string QuoteMemberName(string value)
         {
             if (string.IsNullOrEmpty(value))
-            {
                 return string.Empty;
-            }
 
-            bool RequiresQuote = !value[0].IsIdentifierStart();
-            if (!RequiresQuote)
+            // determine if any character is not a standard indentifier character
+            bool requiresQuote = !value[0].IsIdentifierStart();
+            if (!requiresQuote)
             {
                 foreach (char c in value.Substring(1))
                 {
                     if (!c.IsIdentifierFollow())
                     {
-                        RequiresQuote = true;
+                        requiresQuote = true;
                         break;
                     }
                 }
             }
 
-            return RequiresQuote ?
+            // quote the content if required.
+            return requiresQuote ?
                 "'" + EscapeSingleQuotedStringContent(value) + "'" :
                 value;
         }
@@ -164,23 +164,18 @@ namespace System.Management.Automation.Language
         public static string QuoteArgument(string value, char quoteInUse)
         {
             if (string.IsNullOrEmpty(value))
-            {
                 return string.Empty;
-            }
 
             char quoteToUse = quoteInUse;
             if (quoteToUse == 0)
-            {
                 if (ShouldArgumentNotBeBareword(value))
-                {
+                    // argument value not compatible with bareword
                     quoteToUse = '\'';
-                }
-            }
+                else
+                    // return unmodified argument value
+                    return value;
 
-            if (quoteToUse == 0)
-            {
-                return value;
-            }
+            // quote and escape argument as needed
             return quoteToUse + (quoteToUse.IsDoubleQuote() ? EscapeDoubleQuotedStringContent(value) :
                 EscapeSingleQuotedStringContent(value)) + quoteToUse;
         }
@@ -188,18 +183,11 @@ namespace System.Management.Automation.Language
         private static bool ShouldArgumentNotBeBareword(string value)
         {
             if (string.IsNullOrEmpty(value))
-            {
                 return false;
-            }
 
             // Rules for bareword arguments:
             //   characters that cannot be in the first position: "@#<>"
             //   Pattern that cannot be in the first position: /[1-6]>/
-            //   Characters that cannot appear anywhere 
-            //     ForceStartNewToken
-            //     IsSingleQuote
-            //     IsDoubleQuote
-            //   IsVariableStart characters cannot appear after a `$`
             bool requiresQuote = "@#<>".IndexOf(value[0]) != -1 ||
                 value.Length > 1 && '1' <= value[0] && value[0] <= '6' && value[1] == '>';
 
@@ -208,19 +196,22 @@ namespace System.Management.Automation.Language
                 bool lastCharWasDollar = false;
                 foreach (char c in value)
                 {
+                    //   Characters that cannot appear anywhere 
+                    //     ForceStartNewToken
+                    //     IsSingleQuote
+                    //     IsDoubleQuote
                     if (c.ForceStartNewToken() || c.IsSingleQuote() || c.IsDoubleQuote() || c == '`')
                     {
                         requiresQuote = true;
                         break;
                     }
                     if (lastCharWasDollar)
-                    {
+                        //   IsVariableStart characters cannot appear after a `$`
                         if (c.IsVariableStart())
                         {
                             requiresQuote = true;
                             break;
                         }
-                    }
                     lastCharWasDollar = c == '$';
                 }
             }
@@ -236,23 +227,18 @@ namespace System.Management.Automation.Language
         public static string EscapeDoubleQuotedStringContent(string value)
         {
             if (string.IsNullOrEmpty(value))
-            {
                 return string.Empty;
-            }
 
             StringBuilder sb = new StringBuilder(value.Length);
             foreach (char c in value)
             {
                 if (c == '$')
-                {
+                    // escape `$`
                     sb.Append('`');
-                }
                 sb.Append(c);
                 if (CharExtensions.IsDoubleQuote(c) || c == '`')
-                {
-                    // double-up quotes to escape them
+                    // double-up quotes & backticks to escape them
                     sb.Append(c);
-                }
             }
 
             return sb.ToString();
