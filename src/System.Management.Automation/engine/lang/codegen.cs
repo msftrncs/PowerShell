@@ -180,15 +180,16 @@ namespace System.Management.Automation.Language
                 EscapeSingleQuotedStringContent(value)) + quoteToUse;
         }
 
+        // brute force method to determine when an argument's value cannot be bareword
         private static bool ShouldArgumentNotBeBareword(string value)
         {
             if (string.IsNullOrEmpty(value))
                 return false;
 
             // Rules for bareword arguments:
-            //   characters that cannot be in the first position: "@#<>"
+            //   characters that cannot be in the first position: '@','#','<','>'
             //   Pattern that cannot be in the first position: /[1-6]>/
-            bool requiresQuote = "@#<>".IndexOf(value[0]) != -1 ||
+            bool requiresQuote = "@#<>".Contains(value[0]) ||
                 value.Length > 1 && '1' <= value[0] && value[0] <= '6' && value[1] == '>';
 
             if (!requiresQuote)
@@ -207,6 +208,7 @@ namespace System.Management.Automation.Language
                     }
                     if (lastCharWasDollar)
                         //   IsVariableStart characters cannot appear after a `$`
+                        // note `{` and `(` is handled by ForceStartNewToken()
                         if (c.IsVariableStart())
                         {
                             requiresQuote = true;
@@ -223,23 +225,33 @@ namespace System.Management.Automation.Language
         /// For example: "\"" + EscapeDoubleQuotedStringContent(userContent) + "\""
         /// </summary>
         /// <param name="value">The content to be included in a double-quoted string.</param>
-        /// <returns>Content with all `$`, backticks and double-quotes escaped.</returns>
+        /// <returns>Content with all backticks and double-quotes, and only valid variable `$` escaped.</returns>
         public static string EscapeDoubleQuotedStringContent(string value)
         {
             if (string.IsNullOrEmpty(value))
                 return string.Empty;
 
             StringBuilder sb = new StringBuilder(value.Length);
+            bool lastCharWasDollar = false;
             foreach (char c in value)
             {
-                if (c == '$')
-                    // escape `$`
-                    sb.Append('`');
-                sb.Append(c);
-                if (CharExtensions.IsDoubleQuote(c) || c == '`')
-                    // double-up quotes & backticks to escape them
+                if (lastCharWasDollar)
+                {
+                    if (c.IsVariableStart() || c == '{' || c == '(')
+                        sb.Append('`');
+                    sb.Append('$');
+                }
+                lastCharWasDollar = c == '$';
+                if (!lastCharWasDollar)
+                {
                     sb.Append(c);
+                    if (c.IsDoubleQuote() || c == '`')
+                        // double-up quotes & backticks to escape them
+                        sb.Append(c);
+                }
             }
+            if (lastCharWasDollar)
+                sb.Append('$');
 
             return sb.ToString();
         }
