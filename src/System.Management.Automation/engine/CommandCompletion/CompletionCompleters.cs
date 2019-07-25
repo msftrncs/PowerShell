@@ -3938,10 +3938,11 @@ namespace System.Management.Automation
                 {
                     if (sharePattern.IsMatch(share))
                     {
-                        string shareFullPath = CodeGeneration.QuoteArgument("\\\\" + server + "\\" + share,
+                        string shareFullPath = "\\\\" + server + "\\" + share;
+                        string completionText = CodeGeneration.QuoteArgument(shareFullPath,
                             quote == string.Empty ? (char)0 : quote[0], useLiteralPath);
 
-                        results.Add(new CompletionResult(shareFullPath, shareFullPath, CompletionResultType.ProviderContainer, shareFullPath));
+                        results.Add(new CompletionResult(completionText, share, CompletionResultType.ProviderContainer, shareFullPath));
                     }
                 }
             }
