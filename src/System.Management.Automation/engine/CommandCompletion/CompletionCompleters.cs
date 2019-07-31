@@ -4558,7 +4558,7 @@ namespace System.Management.Automation
 
             var helper = new PowerShellExecutionHelper(PowerShell.Create(RunspaceMode.CurrentRunspace));
             var executionContext = helper.CurrentPowerShell.Runspace.ExecutionContext;
-            return CompleteVariable(new CompletionContext { WordToComplete = variableName, Helper = helper, ExecutionContext = executionContext });
+            return CompleteVariable( (new CompletionContext { WordToComplete = variableName, Helper = helper, ExecutionContext = executionContext }), "");
         }
 
         private static readonly string[] s_variableScopes = new string[] { "Global:", "Local:", "Script:", "Private:" };
@@ -4566,7 +4566,7 @@ namespace System.Management.Automation
             '-', '`', '&', '@', '\'', '"', '#', '{', '}', '(', ')', '$', ',', ';', '|', '<', '>', ' ', '.', '\\', '/', '\t', '^',
         };
 
-        internal static List<CompletionResult> CompleteVariable(CompletionContext context)
+        internal static List<CompletionResult> CompleteVariable(CompletionContext context, string prefix)
         {
             HashSet<string> hashedResults = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             List<CompletionResult> results = new List<CompletionResult>();
@@ -4574,9 +4574,9 @@ namespace System.Management.Automation
             var wordToComplete = context.WordToComplete;
             var colon = wordToComplete.IndexOf(':');
 
-            var lastAst = context.RelatedAsts.Last();
+            var lastAst = context.RelatedAsts != null ? context.RelatedAsts.Last(): null;
             var variableAst = lastAst as VariableExpressionAst;
-            var prefix = variableAst != null && variableAst.Splatted ? "@" : "$";
+            //var prefix = variableAst != null && variableAst.Splatted ? "@" : "$";
 
             // Look for variables in the input (e.g. parameters, etc.) before checking session state - these
             // variables might not exist in session state yet.

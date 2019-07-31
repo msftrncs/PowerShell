@@ -350,7 +350,7 @@ namespace System.Management.Automation
                     case TokenKind.Variable:
                     case TokenKind.SplattedVariable:
                         completionContext.WordToComplete = ((VariableToken)tokenAtCursor).VariablePath.UserPath;
-                        result = CompletionCompleters.CompleteVariable(completionContext);
+                        result = CompletionCompleters.CompleteVariable(completionContext, tokenAtCursor.Kind == TokenKind.SplattedVariable ? "@" : "$" );
                         break;
 
                     case TokenKind.Multiply:
@@ -1420,10 +1420,10 @@ namespace System.Management.Automation
             var strConst = lastAst as StringConstantExpressionAst;
             if (strConst != null)
             {
-                if (strConst.Value.Equals("$", StringComparison.Ordinal))
+                if (strConst.Value.Equals("$", StringComparison.Ordinal) || strConst.Value.Equals("@", StringComparison.Ordinal))
                 {
                     completionContext.WordToComplete = string.Empty;
-                    return CompletionCompleters.CompleteVariable(completionContext);
+                    return CompletionCompleters.CompleteVariable(completionContext, strConst.Value);
                 }
                 else
                 {
